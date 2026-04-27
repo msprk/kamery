@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kamerový systém</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f4f2ee; --surface: #ffffff; --surface2: #edeae3;
+      --border: rgba(0,0,0,0.09); --border-strong: rgba(0,0,0,0.16);
+      --text: #1a1814; --muted: #7a746a;
+      --accent: #1d5fa8; --accent-light: #e8f0fb; --accent-dark: #0c3d6e;
+      --green: #2d6a4f; --green-light: #d8f0e6;
+      --red: #c0392b; --red-light: #fde8e6;
+      --amber: #b45309;
+      --radius: 10px; --radius-lg: 14px;
+      --nav-h: 62px;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: var(--nav-h); }
+
+    /* TOPBAR */
+    .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 1.25rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 20; }
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
+    .topbar-icon { width: 30px; height: 30px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .topbar-title { font-size: 17px; font-weight: 600; }
+    .home-btn { width: 32px; height: 32px; border-radius: 8px; border: .5px solid var(--border-strong); background: var(--surface2); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; text-decoration: none; flex-shrink: 0; }
+    .home-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .chart-wrap { position: relative; height: 180px; }
+    .stat-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 1.25rem 0 8px; }
+    .stat-title:first-child { margin-top: 0; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 4px; }
+    .kpi-card { background: var(--surface); border-radius: var(--radius-lg); border: .5px solid var(--border); padding: 14px; text-align: center; }
+    .kpi-num { font-size: 26px; font-weight: 600; line-height: 1; }
+    .kpi-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .chart-card { background: var(--surface); border-radius: var(--radius-lg); border: .5px solid var(--border); padding: 14px; margin-bottom: 8px; }
+    .br { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .br:last-child { margin-bottom: 0; }
+    .br-label { font-size: 12px; min-width: 80px; }
+    .br-wrap { flex: 1; background: var(--surface2); border-radius: 4px; height: 8px; overflow: hidden; }
+    .br-bar { height: 100%; border-radius: 4px; transition: width .4s; }
+    .br-count { font-size: 12px; font-weight: 500; min-width: 44px; text-align: right; }
+    .status-pill { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); background: var(--surface2); border-radius: 20px; padding: 4px 10px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #ccc; transition: background 0.3s; }
+    .dot.on { background: #3da45a; }
+
+    /* BOTTOM NAV */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-h); background: var(--surface); border-top: 1px solid var(--border); display: flex; align-items: center; z-index: 30; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 6px 0; flex: 1; }
+    .nav-item.active .nav-icon { color: var(--accent); }
+    .nav-item.active .nav-label { color: var(--accent); font-weight: 600; }
+    .nav-icon { font-size: 20px; color: var(--muted); }
+    .nav-label { font-size: 11px; color: var(--muted); }
+
+    /* MAIN */
+    .main { max-width: 600px; margin: 0 auto; padding: 1rem; }
+
+    /* DATE FILTER */
+    .date-row { display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; }
+    .date-row input[type="date"] { flex: 1; height: 38px; border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 0 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); background: var(--surface); outline: none; -webkit-appearance: none; appearance: none; }
+    .date-row input:focus { border-color: var(--accent); }
+    .today-btn { height: 38px; padding: 0 14px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+    .today-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .day-count { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+    /* SERVICE CARD */
+    .service-card { background: var(--surface); border-radius: var(--radius-lg); border: 0.5px solid var(--border); margin-bottom: 10px; overflow: hidden; }
+    .service-header { display: flex; align-items: center; gap: 12px; padding: 13px 15px; cursor: pointer; }
+    .service-header:hover { background: #fafaf8; }
+    .worker-chip { width: 44px; height: 44px; border-radius: 10px; background: var(--accent-light); color: var(--accent); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .worker-chip.active { background: var(--green-light); color: var(--green); }
+    .svc-info { flex: 1; min-width: 0; }
+    .svc-worker { font-size: 15px; font-weight: 500; }
+    .svc-times { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .svc-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .svc-badge { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; flex-shrink: 0; }
+    .svc-badge.active { background: var(--green-light); color: var(--green); }
+    .svc-badge.done   { background: var(--surface2); color: var(--muted); }
+
+    .svc-body { border-top: 0.5px solid var(--border); display: none; }
+    .svc-body.open { display: block; }
+    .records-wrap { padding: 12px 15px; }
+    .records-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 8px; }
+    .record-row { display: flex; gap: 0; padding: 9px 0; border-bottom: 0.5px solid var(--border); align-items: flex-start; }
+    .record-row:last-child { border-bottom: none; }
+    .rec-time { font-size: 12px; font-weight: 500; color: var(--amber); min-width: 46px; flex-shrink: 0; padding-top: 1px; }
+    .rec-cam  { font-size: 12px; font-weight: 500; color: var(--accent); min-width: 74px; flex-shrink: 0; padding-top: 1px; }
+    .rec-desc { font-size: 13px; color: var(--text); line-height: 1.5; flex: 1; }
+    .no-records { font-size: 13px; color: var(--muted); text-align: center; padding: 14px 0; }
+    .svc-footer { padding: 10px 15px; background: var(--surface2); border-top: 0.5px solid var(--border); display: flex; justify-content: flex-end; }
+    .del-svc-btn { width: 34px; height: 34px; border-radius: var(--radius); border: 0.5px solid rgba(192,57,43,0.25); background: none; color: var(--red); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .del-svc-btn svg { width: 15px; height: 15px; }
+    .edit-svc-btn { height: 34px; padding: 0 14px; border-radius: var(--radius); border: 0.5px solid rgba(29,95,168,0.3); background: none; color: var(--accent); font-family: "DM Sans",sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; flex: 1; }
+    .edit-svc-btn:hover { background: var(--accent-light); }
+    .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; padding: 14px 15px; }
+    .edit-group { display: flex; flex-direction: column; gap: 3px; }
+    .edit-group.full { grid-column: 1/-1; }
+    .edit-label { font-size: 11px; color: var(--muted); font-weight: 500; }
+    .edit-save { height: 38px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-family: "DM Sans",sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; flex: 1; }
+    .edit-cancel { height: 38px; padding: 0 14px; background: none; border: 0.5px solid var(--border-strong); border-radius: var(--radius); font-family: "DM Sans",sans-serif; font-size: 13px; color: var(--muted); cursor: pointer; }
+
+    /* EMPTY */
+    .empty { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: 14px; }
+
+    /* ── SLUŽBA TAB ── */
+    /* No service state */
+    .no-service-card { background: var(--surface); border-radius: var(--radius-lg); border: 0.5px solid var(--border); padding: 1.5rem; text-align: center; }
+    .no-service-icon { font-size: 36px; margin-bottom: 12px; }
+    .no-service-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .no-service-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+
+    /* Active service view */
+    .active-service-card { background: var(--surface); border-radius: var(--radius-lg); border: 0.5px solid var(--border); overflow: hidden; margin-bottom: 1rem; }
+    .active-service-header { padding: 16px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .active-service-left { display: flex; align-items: center; gap: 12px; }
+    .active-worker-chip { width: 52px; height: 52px; border-radius: 12px; background: var(--green-light); color: var(--green); font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .active-service-info .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--green); margin-bottom: 2px; }
+    .active-service-info .worker { font-size: 20px; font-weight: 600; }
+    .active-service-info .since { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    .active-records { padding: 12px 15px; }
+    .active-records-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 8px; }
+
+    .active-footer { display: flex; gap: 8px; padding: 12px 15px; background: var(--surface2); border-top: 0.5px solid var(--border); }
+    .add-rec-btn { flex: 1; height: 42px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+    .add-rec-btn:hover { background: var(--accent-dark); }
+    .end-service-btn { height: 42px; padding: 0 16px; background: var(--red-light); color: var(--red); border: 1px solid rgba(192,57,43,0.2); border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+    .end-service-btn:hover { background: #fcd5d0; }
+
+    /* START FORM */
+    .form-card { background: var(--surface); border-radius: var(--radius-lg); border: 0.5px solid var(--border); padding: 1.25rem; }
+    .form-card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 14px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 12px; color: var(--muted); font-weight: 500; }
+    input, select, textarea { width: 100%; border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 0 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); background: var(--surface2); outline: none; transition: border-color 0.15s; height: 42px; }
+    input[type="date"], input[type="time"] { -webkit-appearance: none; appearance: none; text-align: left; }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); background: #fff; }
+    input::placeholder, textarea::placeholder { color: var(--muted); }
+    textarea { height: 80px; padding: 10px; resize: vertical; }
+    .submit-btn { width: 100%; height: 46px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 0.75rem; transition: background 0.15s; }
+    .submit-btn:hover { background: var(--accent-dark); }
+    .submit-btn:disabled { background: var(--muted); cursor: not-allowed; }
+
+    /* MODAL */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
+    .modal-overlay.hidden { display: none; }
+    .modal { background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 1.25rem; width: 100%; max-width: 600px; max-height: 85vh; overflow-y: auto; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .modal-title { font-size: 15px; font-weight: 600; }
+    .modal-close { background: var(--surface2); border: none; color: var(--muted); width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+
+    @media (max-width: 600px) {
+      .main { padding: 0.75rem; }
+      .form-grid { grid-template-columns: 1fr; }
+      .active-footer { flex-direction: column; }
+      .end-service-btn { width: 100%; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="topbar-left">
+    <a class="home-btn" href="https://msprk.github.io" title="Dashboard">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+    </a>
+    <div class="topbar-icon">📷</div>
+    <span class="topbar-title">Kamerový systém</span>
+  </div>
+  <div class="status-pill">
+    <div class="dot" id="status-dot"></div>
+    <span id="status-text">Pripájanie...</span>
+  </div>
+</nav>
+
+<main class="main">
+
+  <!-- DENNÍK -->
+  <div id="tab-dennik" style="display:none">
+    <div style="position:relative;margin-bottom:10px">
+      <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--muted);pointer-events:none">🔍</span>
+      <input type="text" id="dennik-search" placeholder="Hľadať podľa pracovníka, kamery, opisu..." oninput="renderDennik()"
+        style="width:100%;height:40px;border:.5px solid var(--border-strong);border-radius:var(--radius);padding:0 12px 0 36px;font-family:'DM Sans',sans-serif;font-size:14px;background:var(--surface);outline:none;color:var(--text)"/>
+    </div>
+    <div id="dennik-list"><div class="empty">Načítavanie...</div></div>
+  </div>
+
+  <!-- ŠTATISTIKY -->
+  <div id="tab-stats" style="display:none">
+    <div class="stat-title">Celkový prehľad</div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <select id="stat-year" onchange="renderStats()" style="flex:1;height:36px;border:.5px solid var(--border-strong);border-radius:var(--radius);padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);outline:none">
+        <option value="">Všetky roky</option>
+      </select>
+      <select id="stat-month" onchange="renderStats()" style="flex:1;height:36px;border:.5px solid var(--border-strong);border-radius:var(--radius);padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);outline:none">
+        <option value="">Všetky mesiace</option>
+        <option value="01">Január</option><option value="02">Február</option>
+        <option value="03">Marec</option><option value="04">Apríl</option>
+        <option value="05">Máj</option><option value="06">Jún</option>
+        <option value="07">Júl</option><option value="08">August</option>
+        <option value="09">September</option><option value="10">Október</option>
+        <option value="11">November</option><option value="12">December</option>
+      </select>
+    </div>
+    <div class="kpi-grid" id="stat-kpi"></div>
+    <div class="stat-title">Podľa hliadky</div>
+    <div class="chart-card" id="stat-shift"></div>
+    <div class="stat-title">Podľa pracovníka</div>
+    <div class="chart-card" id="stat-worker"></div>
+    <div class="stat-title" id="stat-month-title">Podľa mesiaca</div>
+    <div class="chart-card">
+      <div class="chart-wrap"><canvas id="monthly-chart"></canvas></div>
+    </div>
+  </div>
+  <div id="tab-sluzba">
+    <div id="sluzba-content"></div>
+  </div>
+
+</main>
+
+<!-- MODAL: pridať záznam -->
+<div class="modal-overlay hidden" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Záznam udalosti</span>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Kamera</label>
+        <select id="r-camera"><option value="">-</option></select>
+      </div>
+      <div class="form-group">
+        <label>Čas udalosti</label>
+        <input type="time" id="r-time" />
+      </div>
+      <div class="form-group full">
+        <label>Opis udalosti</label>
+        <textarea id="r-desc" placeholder="Čo sa stalo..."></textarea>
+      </div>
+    </div>
+    <button class="submit-btn" id="record-btn" onclick="saveRecord()">Uložiť záznam</button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="nav-item active" id="nav-sluzba" onclick="switchTab('sluzba')">
+    <span class="nav-icon" id="sluzba-icon">📷</span>
+    <span class="nav-label">Služba</span>
+  </div>
+  <div class="nav-item" id="nav-dennik" onclick="switchTab('dennik')">
+    <span class="nav-icon">📋</span>
+    <span class="nav-label">Denník</span>
+  </div>
+  <div class="nav-item" id="nav-stats" onclick="switchTab('stats')">
+    <span class="nav-icon">📊</span>
+    <span class="nav-label">Štatistiky</span>
+  </div>
+</nav>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue, push, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyDOYPIXjbW3mrFpospLjTbt6ui4I318sg8",
+    authDomain:        "msprk-app.firebaseapp.com",
+    databaseURL:       "https://msprk-app-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId:         "msprk-app",
+    storageBucket:     "msprk-app.firebasestorage.app",
+    messagingSenderId: "544350754193",
+    appId:             "1:544350754193:web:acb050a43126437790f630"
+  };
+
+  const app    = initializeApp(firebaseConfig);
+
+  // ── AUTH GUARD ──
+  const auth = getAuth(app);
+  onAuthStateChanged(auth, user => {
+    if (!user) window.location.href = "https://msprk.github.io/";
+  });
+  // ────────────────
+  const db     = getDatabase(app);
+  const svcRef = ref(db, "kamery/sluzby");
+
+  let allServices = {}, openId = null, activeServiceId = null, editId = null, editRecordId = null;
+
+  // Dropdowns
+  const camSel = document.getElementById("r-camera");
+  for (let i=1; i<=35; i++) camSel.insertAdjacentHTML("beforeend", `<option value="Kamera ${i}">Kamera ${i}</option>`);
+
+  // Today
+  const today = new Date().toISOString().split("T")[0];
+
+  function setStatus(on) {
+    document.getElementById("status-dot").className = "dot"+(on?" on":"");
+    document.getElementById("status-text").textContent = on ? "Online" : "Offline";
+  }
+
+  onValue(svcRef, snap => {
+    allServices = snap.val()||{};
+    setStatus(true);
+    renderDennik();
+    renderSluzba();
+  }, () => setStatus(false));
+
+  // ── DENNÍK ──
+  window.renderDennik = function() {
+    const q = (document.getElementById("dennik-search")?.value||"").toLowerCase();
+    let entries = Object.entries(allServices)
+      .map(([id,v])=>({id,...v}))
+      .sort((a,b)=>(b.date||"").localeCompare(a.date||"") || (b.startTime||"").localeCompare(a.startTime||""));
+
+    if (q) {
+      entries = entries.filter(s => {
+        const inHeader = [s.worker, s.shift, s.date].some(v=>(v||"").toLowerCase().includes(q));
+        const inRecords = s.records ? Object.values(s.records).some(r=>
+          [r.camera, r.description].some(v=>(v||"").toLowerCase().includes(q))
+        ) : false;
+        return inHeader || inRecords;
+      });
+    }
+
+
+    const container = document.getElementById("dennik-list");
+    if (!entries.length) {
+      container.innerHTML = `<div class="empty">Pre tento dátum žiadne záznamy.</div>`;
+      return;
+    }
+    container.innerHTML = entries.map(s => {
+      const isActive = s.status === "active";
+      const isOpen   = openId === s.id;
+      const records  = s.records ? Object.values(s.records).sort((a,b)=>(a.time||"").localeCompare(b.time||"")) : [];
+      const dur      = s.endTime ? calcDuration(s.startTime, s.endTime) : null;
+      return `
+      <div class="service-card">
+        <div class="service-header" onclick="toggleCard('${s.id}')">
+          <div class="worker-chip ${isActive?"active":""}">${s.worker||"—"}</div>
+          <div class="svc-info">
+            <div class="svc-worker">${s.date||"—"} · ${s.shift?"Hliadka "+s.shift+" · ":""}${s.worker||"—"}</div>
+            <div class="svc-times">${s.startTime||"—"}${s.endTime?" – "+s.endTime:""}${dur?" ("+dur+")":""}</div>
+            <div class="svc-meta">${records.length} udalost${records.length===1?"":"í"}</div>
+          </div>
+          <span class="svc-badge ${isActive?"active":"done"}">${isActive?"Aktívna":"Ukončená"}</span>
+        </div>
+        <div class="svc-body ${isOpen?"open":""}">
+          ${editId===s.id ? `
+            <!-- SERVICE FIELDS -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;padding:14px 15px 10px">
+              <div style="display:flex;flex-direction:column;gap:3px">
+                <span style="font-size:11px;color:var(--muted);font-weight:500">Dátum</span>
+                <input type="date" id="ed-date" value="${s.date||''}" style="height:36px;border:1px solid var(--border-strong);border-radius:var(--radius);padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface2);color:var(--text);outline:none;width:100%"/>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:3px">
+                <span style="font-size:11px;color:var(--muted);font-weight:500">Čas začiatku</span>
+                <input type="time" id="ed-start" value="${s.startTime||''}" style="height:36px;border:1px solid var(--border-strong);border-radius:var(--radius);padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface2);color:var(--text);outline:none;width:100%"/>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:3px">
+                <span style="font-size:11px;color:var(--muted);font-weight:500">Čas konca</span>
+                <input type="time" id="ed-end" value="${s.endTime||''}" style="height:36px;border:1px solid var(--border-strong);border-radius:var(--radius);padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface2);color:var(--text);outline:none;width:100%"/>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:3px">
+                <span style="font-size:11px;color:var(--muted);font-weight:500">Pracovník</span>
+                <select id="ed-worker" style="height:36px;border:1px solid var(--border-strong);border-radius:var(--radius);padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface2);color:var(--text);outline:none;width:100%">
+                  <option value="">-</option>
+                  ${Array.from({length:39},(_,i)=>{const c=String(i+1).padStart(3,"0");return `<option value="${c}" ${s.worker===c?"selected":""}>${c}</option>`;}).join("")}
+                </select>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:3px">
+                <span style="font-size:11px;color:var(--muted);font-weight:500">Hliadka</span>
+                <select id="ed-shift" style="height:36px;border:1px solid var(--border-strong);border-radius:var(--radius);padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface2);color:var(--text);outline:none;width:100%">
+                  <option value="">-</option>
+                  ${["A","B","C","D"].map(o=>`<option value="${o}" ${s.shift===o?"selected":""}>${o}</option>`).join("")}
+                </select>
+              </div>
+            </div>
+            <!-- RECORDS EDIT -->
+            ${records.length ? `
+            <div style="border-top:0.5px solid var(--border);padding:10px 15px">
+              <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Záznamy udalostí</div>
+              ${records.map((rec,idx)=>`
+              <div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:6px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+                  <div style="display:flex;flex-direction:column;gap:3px">
+                    <span style="font-size:11px;color:var(--muted);font-weight:500">Kamera</span>
+                    <select id="er-cam-${rec.rid}" style="height:34px;border:1px solid var(--border-strong);border-radius:8px;padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;width:100%">
+                      <option value="">-</option>
+                      ${Array.from({length:35},(_,i)=>`<option value="Kamera ${i+1}" ${rec.camera===`Kamera ${i+1}`?"selected":""}>Kamera ${i+1}</option>`).join("")}
+                    </select>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:3px">
+                    <span style="font-size:11px;color:var(--muted);font-weight:500">Čas</span>
+                    <input type="time" id="er-time-${rec.rid}" value="${rec.time||''}" style="height:34px;border:1px solid var(--border-strong);border-radius:8px;padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;width:100%"/>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:3px;grid-column:1/-1">
+                    <span style="font-size:11px;color:var(--muted);font-weight:500">Opis</span>
+                    <textarea id="er-desc-${rec.rid}" style="width:100%;height:56px;border:1px solid var(--border-strong);border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;resize:vertical">${rec.description||''}</textarea>
+                  </div>
+                </div>
+                <button onclick="deleteRecord('${s.id}','${rec.rid}')" style="height:28px;padding:0 10px;background:none;border:0.5px solid rgba(192,57,43,0.25);border-radius:6px;color:var(--red);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer">Vymazať záznam</button>
+              </div>`).join("")}
+            </div>` : ''}
+            <!-- SAVE / CANCEL -->
+            <div style="display:flex;gap:8px;padding:10px 15px 14px">
+              <button onclick="saveAll('${s.id}')" style="flex:1;height:40px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer">Uložiť zmeny</button>
+              <button onclick="cancelEdit()" style="height:40px;padding:0 16px;background:none;border:0.5px solid var(--border-strong);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--muted);cursor:pointer">Zrušiť</button>
+            </div>
+          ` : `
+            <div class="records-wrap">
+              <div class="records-title">Záznamy udalostí</div>
+              ${records.length ? records.map(rec=>`
+                <div class="record-row">
+                  <span class="rec-time">${rec.time||""}</span>
+                  <span class="rec-cam">${rec.camera||""}</span>
+                  <span class="rec-desc">${rec.description||""}</span>
+                </div>`).join("") : `<div class="no-records">Žiadne záznamy udalostí</div>`}
+            </div>
+            <div class="svc-footer">
+              <button class="edit-svc-btn" onclick="startEdit('${s.id}')">Upraviť</button>
+              <button class="del-svc-btn" onclick="deleteService('${s.id}')" title="Vymazať">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                  <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                </svg>
+              </button>
+            </div>
+          `}
+        </div>
+      </div>`;
+    }).join("");
+  };
+
+  window.deleteService = id => {
+    if (confirm("Vymazať túto službu so všetkými záznamami?")) remove(ref(db,"kamery/sluzby/"+id));
+  };
+
+  window.toggleCard = id => { openId = openId===id?null:id; editId = null; renderDennik(); };
+  window.startEdit  = id => { editId = id; openId = id; renderDennik(); };
+  window.cancelEdit = ()  => { editId = null; renderDennik(); };
+  window.saveAll = async (id) => {
+    const g = elId => { const el=document.getElementById(elId); return el?el.value.trim():""; };
+    const s = allServices[id]; if (!s) return;
+    await update(ref(db,"kamery/sluzby/"+id), {
+      date: g("ed-date"), startTime: g("ed-start"), endTime: g("ed-end"),
+      worker: g("ed-worker"), shift: g("ed-shift"),
+    });
+    const records = s.records ? Object.entries(s.records) : [];
+    for (const [rid] of records) {
+      const cam  = g(`er-cam-${rid}`);
+      const time = g(`er-time-${rid}`);
+      const desc = g(`er-desc-${rid}`);
+      if (cam || time || desc) await update(ref(db,`kamery/sluzby/${id}/records/${rid}`), {camera:cam, time, description:desc});
+    }
+    editId = null; renderDennik();
+  };
+  window.deleteRecord = (svcId, rid) => {
+    if (confirm("Vymazať tento záznam udalosti?")) remove(ref(db,`kamery/sluzby/${svcId}/records/${rid}`));
+  };
+
+    // ── SLUŽBA ──
+  function renderSluzba() {
+    const active = Object.entries(allServices).map(([id,v])=>({id,...v})).find(s=>s.status==="active");
+    activeServiceId = active ? active.id : null;
+
+    // Update nav icon
+    document.getElementById("sluzba-icon").textContent = active ? "🟢" : "📷";
+
+    const container = document.getElementById("sluzba-content");
+    if (!active) {
+      // Show start form
+      container.innerHTML = `
+        <div class="no-service-card" style="margin-bottom:1rem">
+          <div class="no-service-icon">📷</div>
+          <div class="no-service-title">Žiadna aktívna služba</div>
+          <div class="no-service-sub">Momentálne nikto nie je na kamerovom systéme.</div>
+        </div>
+        <div class="form-card">
+          <div class="form-card-title">Začať novú službu</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Dátum</label>
+              <input type="date" id="s-date" value="${new Date().toISOString().split("T")[0]}" />
+            </div>
+            <div class="form-group">
+              <label>Čas začiatku</label>
+              <input type="time" id="s-start" value="${new Date().toTimeString().slice(0,5)}" />
+            </div>
+            <div class="form-group">
+              <label>Pracovník</label>
+              <select id="s-worker"><option value="">-</option>${Array.from({length:39},(_,i)=>{const c=String(i+1).padStart(3,"0");return `<option value="${c}">${c}</option>`;}).join("")}</select>
+            </div>
+            <div class="form-group">
+              <label>Hliadka</label>
+              <select id="s-shift"><option value="">-</option><option>A</option><option>B</option><option>C</option><option>D</option></select>
+            </div>
+          </div>
+          <button class="submit-btn" id="start-btn" onclick="startService()">Začať službu</button>
+        </div>`;
+    } else {
+      // Show active service
+      const records = active.records ? Object.values(active.records).sort((a,b)=>(a.time||"").localeCompare(b.time||"")) : [];
+      container.innerHTML = `
+        <div class="active-service-card">
+          <div class="active-service-header">
+            <div class="active-service-left">
+              <div class="active-worker-chip">${active.worker}</div>
+              <div class="active-service-info">
+                <div class="label">Aktívna služba</div>
+                <div class="worker">Pracovník ${active.worker}</div>
+                <div class="since">od ${active.startTime} · ${active.date}${active.shift?' · Hliadka '+active.shift:''}</div>
+              </div>
+            </div>
+          </div>
+          <div class="active-records">
+            <div class="active-records-title">Záznamy udalostí</div>
+            ${records.length ? records.map(rec=>`
+              <div class="record-row">
+                <span class="rec-time">${rec.time||""}</span>
+                <span class="rec-cam">${rec.camera||""}</span>
+                <span class="rec-desc">${rec.description||""}</span>
+              </div>`).join("") : `<div class="no-records">Zatiaľ žiadne záznamy — pridajte prvý.</div>`}
+          </div>
+          <div class="active-footer">
+            <button class="add-rec-btn" onclick="openModal()">+ Záznam udalosti</button>
+            <button class="end-service-btn" onclick="endService()">Ukončiť službu</button>
+          </div>
+        </div>`;
+    }
+  }
+
+  window.startService = function() {
+    const worker = document.getElementById("s-worker").value;
+    const date   = document.getElementById("s-date").value;
+    const start  = document.getElementById("s-start").value;
+    const shift  = document.getElementById("s-shift").value;
+    if (!worker) { alert("Vyplňte pracovníka."); return; }
+    if (!date)   { alert("Vyplňte dátum."); return; }
+    if (!start)  { alert("Vyplňte čas začiatku."); return; }
+    if (!shift)  { alert("Vyplňte hliadku."); return; }
+    const btn = document.getElementById("start-btn");
+    btn.disabled=true; btn.textContent="Ukladanie...";
+    push(svcRef, {worker, date, startTime:start, shift, status:"active", ts:Date.now()})
+      .then(()=>{ btn.disabled=false; btn.textContent="Začať službu"; });
+  };
+
+  window.endService = () => {
+    if (!activeServiceId) return;
+    update(ref(db,"kamery/sluzby/"+activeServiceId), {status:"done", endTime:new Date().toTimeString().slice(0,5)});
+  };
+
+  window.openModal = () => {
+    document.getElementById("r-time").value  = new Date().toTimeString().slice(0,5);
+    document.getElementById("r-desc").value  = "";
+    document.getElementById("r-camera").value = "";
+    document.getElementById("modal").classList.remove("hidden");
+  };
+  window.closeModal = () => document.getElementById("modal").classList.add("hidden");
+
+  window.saveRecord = function() {
+    const camera = document.getElementById("r-camera").value;
+    const time   = document.getElementById("r-time").value;
+    const desc   = document.getElementById("r-desc").value.trim();
+    if (!camera||!time||!desc) { alert("Vyplňte kameru, čas a opis."); return; }
+    if (!activeServiceId) { alert("Žiadna aktívna služba."); return; }
+    const btn = document.getElementById("record-btn");
+    btn.disabled=true; btn.textContent="Ukladanie...";
+    push(ref(db,`kamery/sluzby/${activeServiceId}/records`), {camera, time, description:desc, ts:Date.now()})
+      .then(()=>{ btn.disabled=false; btn.textContent="Uložiť záznam"; closeModal(); });
+  };
+
+
+  window.switchTab = function(tab) {
+    document.getElementById("tab-dennik").style.display = tab==="dennik" ? "" : "none";
+    document.getElementById("tab-sluzba").style.display = tab==="sluzba" ? "" : "none";
+    document.getElementById("tab-stats").style.display  = tab==="stats"  ? "" : "none";
+    document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+    document.getElementById("nav-"+tab).classList.add("active");
+    if (tab==="dennik") renderDennik();
+    if (tab==="sluzba") renderSluzba();
+    if (tab==="stats")  renderStats();
+  };
+
+  window.renderStats = function() {
+    const services = Object.values(allServices);
+    const selYear  = document.getElementById("stat-year")?.value||"";
+    const selMonth = document.getElementById("stat-month")?.value||"";
+
+    // Populate year dropdown
+    const years = [...new Set(services.map(s=>(s.date||"").slice(0,4)).filter(Boolean))].sort().reverse();
+    const ySel = document.getElementById("stat-year");
+    if (ySel && ySel.options.length === 1) {
+      years.forEach(y => { const o=document.createElement("option"); o.value=y; o.textContent=y; ySel.appendChild(o); });
+    }
+    if (selYear) ySel.value = selYear;
+
+    // Filter services
+    let filtered = services.filter(s => s.status !== "active");
+    if (selYear)  filtered = filtered.filter(s=>(s.date||"").startsWith(selYear));
+    if (selMonth) filtered = filtered.filter(s=>(s.date||"").slice(5,7)===selMonth);
+
+    // Count total events across all filtered services
+    const totalEvents = filtered.reduce((sum,s)=>sum+(s.records?Object.keys(s.records).length:0),0);
+    const totalServices = filtered.length;
+
+    // KPI
+    document.getElementById("stat-kpi").innerHTML = `
+      <div class="kpi-card"><div class="kpi-num">${totalServices}</div><div class="kpi-label">Služby</div></div>
+      <div class="kpi-card"><div class="kpi-num">${totalEvents}</div><div class="kpi-label">Udalosti</div></div>
+      <div class="kpi-card"><div class="kpi-num">${totalServices?Math.round(totalEvents/totalServices*10)/10:0}</div><div class="kpi-label">Udalostí/službu</div></div>`;
+
+    // By shift
+    const shifts = ["A","B","C","D"];
+    const shiftCounts = shifts.map(sh=>filtered.filter(s=>s.shift===sh).length);
+    const maxSh = Math.max(...shiftCounts,1);
+    const colors = ["#1d5fa8","#2d6a4f","#b45309","#c0392b"];
+    document.getElementById("stat-shift").innerHTML = shifts.map((sh,i)=>`
+      <div class="br">
+        <div class="br-label">Hliadka ${sh}</div>
+        <div class="br-wrap"><div class="br-bar" style="width:${Math.round(shiftCounts[i]/maxSh*100)}%;background:${colors[i]}"></div></div>
+        <div class="br-count">${shiftCounts[i]} <span style="font-size:11px;color:var(--muted)">${totalServices?Math.round(shiftCounts[i]/totalServices*100):0}%</span></div>
+      </div>`).join("");
+
+    // By worker
+    const workerMap = {};
+    filtered.forEach(s=>{ if(s.worker) workerMap[s.worker]=(workerMap[s.worker]||0)+1; });
+    const workers = Object.entries(workerMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const maxW = Math.max(...workers.map(w=>w[1]),1);
+    document.getElementById("stat-worker").innerHTML = workers.length ? workers.map(([w,c])=>`
+      <div class="br">
+        <div class="br-label">${w}</div>
+        <div class="br-wrap"><div class="br-bar" style="width:${Math.round(c/maxW*100)}%;background:var(--accent)"></div></div>
+        <div class="br-count">${c} <span style="font-size:11px;color:var(--muted)">${Math.round(c/totalServices*100)}%</span></div>
+      </div>`).join("") : '<div style="font-size:13px;color:var(--muted)">Žiadne dáta</div>';
+
+    // Monthly/daily Chart.js
+    const monthNamesLong = ["Január","Február","Marec","Apríl","Máj","Jún","Júl","August","September","Október","November","December"];
+    const monthsShort = ["Jan","Feb","Mar","Apr","Máj","Jún","Júl","Aug","Sep","Okt","Nov","Dec"];
+    let chartLabels, chartData;
+    if (!selMonth) {
+      document.getElementById("stat-month-title").textContent = "Podľa mesiaca";
+      chartLabels = monthsShort;
+      chartData = monthsShort.map((_,i) => {
+        const m = String(i+1).padStart(2,"0");
+        return filtered.filter(s=>(s.date||"").slice(5,7)===m).length;
+      });
+    } else {
+      document.getElementById("stat-month-title").textContent = "Podľa dňa — " + monthNamesLong[parseInt(selMonth)-1];
+      const yr = selYear || String(new Date().getFullYear());
+      const daysInMonth = new Date(parseInt(yr), parseInt(selMonth), 0).getDate();
+      chartLabels = Array.from({length:daysInMonth},(_,i)=>String(i+1));
+      chartData = chartLabels.map((_,i) => {
+        const day = String(i+1).padStart(2,"0");
+        return filtered.filter(s=>(s.date||"").slice(8,10)===day).length;
+      });
+    }
+    const ctx = document.getElementById("monthly-chart").getContext("2d");
+    if (window._kameryChart) window._kameryChart.destroy();
+    window._kameryChart = new Chart(ctx, {
+      type: "bar",
+      data: { labels: chartLabels, datasets: [{ data: chartData, backgroundColor: "#1d5fa8", borderRadius: 4, borderSkipped: false }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+          y: { grid: { color: "rgba(0,0,0,0.05)" }, ticks: { font: { size: 11 }, precision: 0 }, beginAtZero: true }
+        }
+      }
+    });
+  };
+
+  function calcDuration(start, end) {
+    if (!start||!end) return null;
+    const [sh,sm] = start.split(":").map(Number);
+    const [eh,em] = end.split(":").map(Number);
+    let m = (eh*60+em)-(sh*60+sm); if(m<0) m+=1440;
+    const h = Math.floor(m/60);
+    return h>0 ? `${h}h ${m%60}min` : `${m}min`;
+  }
+</script>
+</body>
+</html>
