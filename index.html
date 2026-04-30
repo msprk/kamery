@@ -85,9 +85,19 @@
     .records-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 8px; }
     .record-row { display: flex; gap: 0; padding: 9px 0; border-bottom: 0.5px solid var(--border); align-items: flex-start; }
     .record-row:last-child { border-bottom: none; }
-    .rec-time { font-size: 12px; font-weight: 500; color: var(--amber); min-width: 46px; flex-shrink: 0; padding-top: 1px; }
-    .rec-cam  { font-size: 12px; font-weight: 500; color: var(--accent); min-width: 74px; flex-shrink: 0; padding-top: 1px; }
+    .rec-time { font-size: 12px; font-weight: 500; color: var(--amber); min-width: 46px; flex-shrink: 0; padding-top: 2px; }
+    .rec-cam  { font-size: 12px; font-weight: 500; color: var(--accent); min-width: 74px; flex-shrink: 0; padding-top: 2px; }
     .rec-desc { font-size: 13px; color: var(--text); line-height: 1.5; flex: 1; }
+    .rec-type-badge { display:inline-block; font-size:10px; font-weight:600; padding:2px 7px; border-radius:20px; margin-bottom:3px; white-space:nowrap; }
+    .type-bitka      { background:#fde8e6; color:#c0392b; }
+    .type-alkohol    { background:#fef3cd; color:#b45309; }
+    .type-znecistenie{ background:#d8f0e6; color:#2d6a4f; }
+    .type-priestupok { background:#e8f0fb; color:#1d5fa8; }
+    .type-podozriva  { background:#ede9fe; color:#5b21b6; }
+    .type-ine        { background:#edeae3; color:#7a746a; }
+    .type-filter-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+    .type-filter-btn { height:28px; padding:0 10px; border-radius:20px; border:1px solid var(--border-strong); background:var(--surface); font-size:12px; font-family:'DM Sans',sans-serif; color:var(--muted); cursor:pointer; transition:all .15s; white-space:nowrap; }
+    .type-filter-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
     .no-records { font-size: 13px; color: var(--muted); text-align: center; padding: 14px 0; }
     .svc-footer { padding: 10px 15px; background: var(--surface2); border-top: 0.5px solid var(--border); display: flex; justify-content: flex-end; }
     .del-svc-btn { width: 34px; height: 34px; border-radius: var(--radius); border: 0.5px solid rgba(192,57,43,0.25); background: none; color: var(--red); cursor: pointer; display: flex; align-items: center; justify-content: center; }
@@ -185,10 +195,19 @@
 
   <!-- DENNÍK -->
   <div id="tab-dennik" style="display:none">
-    <div style="position:relative;margin-bottom:10px">
+    <div style="position:relative;margin-bottom:8px">
       <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--muted);pointer-events:none">🔍</span>
       <input type="text" id="dennik-search" placeholder="Hľadať podľa pracovníka, kamery, opisu..." oninput="renderDennik()"
         style="width:100%;height:40px;border:.5px solid var(--border-strong);border-radius:var(--radius);padding:0 12px 0 36px;font-family:'DM Sans',sans-serif;font-size:14px;background:var(--surface);outline:none;color:var(--text)"/>
+    </div>
+    <div class="type-filter-row" id="type-filter-row">
+      <button class="type-filter-btn active" data-type="" onclick="setTypeFilter('')">Všetky</button>
+      <button class="type-filter-btn" data-type="Bitka" onclick="setTypeFilter('Bitka')">Bitka</button>
+      <button class="type-filter-btn" data-type="Alkohol" onclick="setTypeFilter('Alkohol')">Alkohol</button>
+      <button class="type-filter-btn" data-type="Znečistenie" onclick="setTypeFilter('Znečistenie')">Znečistenie</button>
+      <button class="type-filter-btn" data-type="Priestupok" onclick="setTypeFilter('Priestupok')">Priestupok</button>
+      <button class="type-filter-btn" data-type="Podozrivá osoba" onclick="setTypeFilter('Podozrivá osoba')">Podozrivá osoba</button>
+      <button class="type-filter-btn" data-type="Iné" onclick="setTypeFilter('Iné')">Iné</button>
     </div>
     <div id="dennik-list"><div class="empty">Načítavanie...</div></div>
   </div>
@@ -241,6 +260,18 @@
       <div class="form-group">
         <label>Čas udalosti</label>
         <input type="time" id="r-time" />
+      </div>
+      <div class="form-group full">
+        <label>Druh udalosti</label>
+        <select id="r-type">
+          <option value="">— Vybrať —</option>
+          <option value="Bitka">Bitka</option>
+          <option value="Alkohol">Alkohol</option>
+          <option value="Znečistenie">Znečistenie</option>
+          <option value="Priestupok">Priestupok</option>
+          <option value="Podozrivá osoba">Podozrivá osoba</option>
+          <option value="Iné">Iné</option>
+        </select>
       </div>
       <div class="form-group full">
         <label>Opis udalosti</label>
@@ -340,6 +371,30 @@
   // Today
   const today = new Date().toISOString().split("T")[0];
 
+  // Druh udalosti — pomocné
+  const EVENT_TYPES = ["Bitka","Alkohol","Znečistenie","Priestupok","Podozrivá osoba","Iné"];
+  const TYPE_CLASS = {
+    "Bitka":"type-bitka","Alkohol":"type-alkohol","Znečistenie":"type-znecistenie",
+    "Priestupok":"type-priestupok","Podozrivá osoba":"type-podozriva","Iné":"type-ine"
+  };
+  let activeTypeFilter = "";
+  window.setTypeFilter = function(type) {
+    activeTypeFilter = type;
+    document.querySelectorAll(".type-filter-btn").forEach(b => {
+      b.classList.toggle("active", b.dataset.type === type);
+    });
+    renderDennik();
+  };
+  function typeOptionsHTML(selected) {
+    return `<option value="">— Vybrať —</option>`+
+      EVENT_TYPES.map(t=>`<option value="${t}"${t===selected?" selected":""}>${t}</option>`).join("");
+  }
+  function typeBadge(type) {
+    if (!type) return "";
+    const cls = TYPE_CLASS[type]||"type-ine";
+    return `<span class="rec-type-badge ${cls}">${type}</span><br>`;
+  }
+
   function setStatus(on) {
     document.getElementById("status-dot").className = "dot"+(on?" on":"");
     document.getElementById("status-text").textContent = on ? "Online" : "Offline";
@@ -359,11 +414,18 @@
       .map(([id,v])=>({id,...v}))
       .sort((a,b)=>(b.date||"").localeCompare(a.date||"") || (b.startTime||"").localeCompare(a.startTime||""));
 
+    // filter podla druhu udalosti
+    if (activeTypeFilter) {
+      entries = entries.filter(s =>
+        s.records && Object.values(s.records).some(r => r.eventType === activeTypeFilter)
+      );
+    }
+
     if (q) {
       entries = entries.filter(s => {
         const inHeader = [s.worker, s.shift, s.date].some(v=>(v||"").toLowerCase().includes(q));
         const inRecords = s.records ? Object.values(s.records).some(r=>
-          [r.camera, r.description].some(v=>(v||"").toLowerCase().includes(q))
+          [r.camera, r.description, r.eventType].some(v=>(v||"").toLowerCase().includes(q))
         ) : false;
         return inHeader || inRecords;
       });
@@ -440,6 +502,12 @@
                     <span style="font-size:11px;color:var(--muted);font-weight:500">Čas</span>
                     <input type="time" id="er-time-${rec.rid}" value="${rec.time||''}" style="height:34px;border:1px solid var(--border-strong);border-radius:8px;padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;width:100%"/>
                   </div>
+                  <div style="display:flex;flex-direction:column;gap:3px">
+                    <span style="font-size:11px;color:var(--muted);font-weight:500">Druh udalosti</span>
+                    <select id="er-type-${rec.rid}" style="height:34px;border:1px solid var(--border-strong);border-radius:8px;padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;width:100%">
+                      ${typeOptionsHTML(rec.eventType||"")}
+                    </select>
+                  </div>
                   <div style="display:flex;flex-direction:column;gap:3px;grid-column:1/-1">
                     <span style="font-size:11px;color:var(--muted);font-weight:500">Opis</span>
                     <textarea id="er-desc-${rec.rid}" style="width:100%;height:56px;border:1px solid var(--border-strong);border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;resize:vertical">${rec.description||''}</textarea>
@@ -460,7 +528,7 @@
                 <div class="record-row">
                   <span class="rec-time">${rec.time||""}</span>
                   <span class="rec-cam">${rec.camera||""}</span>
-                  <span class="rec-desc">${rec.description||""}</span>
+                  <span class="rec-desc">${typeBadge(rec.eventType||"")}${rec.description||""}</span>
                 </div>`).join("") : `<div class="no-records">Žiadne záznamy udalostí</div>`}
             </div>
             <div class="svc-footer">
@@ -494,10 +562,11 @@
     });
     const records = s.records ? Object.entries(s.records) : [];
     for (const [rid] of records) {
-      const cam  = g(`er-cam-${rid}`);
-      const time = g(`er-time-${rid}`);
-      const desc = g(`er-desc-${rid}`);
-      if (cam || time || desc) await update(ref(db,`kamery/sluzby/${id}/records/${rid}`), {camera:cam, time, description:desc});
+      const cam       = g(`er-cam-${rid}`);
+      const time      = g(`er-time-${rid}`);
+      const eventType = g(`er-type-${rid}`);
+      const desc      = g(`er-desc-${rid}`);
+      if (cam || time || desc || eventType) await update(ref(db,`kamery/sluzby/${id}/records/${rid}`), {camera:cam, time, eventType, description:desc});
     }
     editId = null; renderDennik();
   };
@@ -597,22 +666,25 @@
   };
 
   window.openModal = () => {
-    document.getElementById("r-time").value  = new Date().toTimeString().slice(0,5);
-    document.getElementById("r-desc").value  = "";
+    document.getElementById("r-time").value   = new Date().toTimeString().slice(0,5);
+    document.getElementById("r-desc").value   = "";
     document.getElementById("r-camera").value = "";
+    document.getElementById("r-type").value   = "";
     document.getElementById("modal").classList.remove("hidden");
   };
   window.closeModal = () => document.getElementById("modal").classList.add("hidden");
 
   window.saveRecord = function() {
-    const camera = document.getElementById("r-camera").value;
-    const time   = document.getElementById("r-time").value;
-    const desc   = document.getElementById("r-desc").value.trim();
-    if (!camera||!time||!desc) { alert("Vyplňte kameru, čas a opis."); return; }
-    if (!activeServiceId) { alert("Žiadna aktívna služba."); return; }
+    const camera    = document.getElementById("r-camera").value;
+    const time      = document.getElementById("r-time").value;
+    const eventType = document.getElementById("r-type").value;
+    const desc      = document.getElementById("r-desc").value.trim();
+    if (!camera || !time)  { alert("Vyplňte kameru a čas."); return; }
+    if (!eventType)        { alert("Vyberte druh udalosti."); return; }
+    if (!activeServiceId)  { alert("Žiadna aktívna služba."); return; }
     const btn = document.getElementById("record-btn");
     btn.disabled=true; btn.textContent="Ukladanie...";
-    push(ref(db,`kamery/sluzby/${activeServiceId}/records`), {camera, time, description:desc, ts:Date.now()})
+    push(ref(db,`kamery/sluzby/${activeServiceId}/records`), {camera, time, eventType, description:desc, ts:Date.now()})
       .then(()=>{ btn.disabled=false; btn.textContent="Uložiť záznam"; closeModal(); });
   };
 
