@@ -295,9 +295,47 @@
 
   let allServices = {}, openId = null, activeServiceId = null, editId = null, editRecordId = null;
 
-  // Dropdowns
+  // ── KAMERY ──
+  const CAM_GROUPS = {
+    "MLK1": [
+      "1-04-3-ORPZ-Salvova","1-05-3-ZSDoncova-Doncova","1-06-2-Synagoga-Panska",
+      "1-07-5-RuzoveSchody","1-19-1-MsU-Gymnazium","1-19-2-MsU-Vila",
+      "1-19-3-MsU-Vzadu","1-19-4-MsU-Zavoz","1-20-1-NabrezieMostova",
+      "1-20-2-NabrezieMostova-Pr","2-01-3-Kuratorium-Vnutrob","2-03-3-Acko-Hrabovo",
+      "4-03-2-CityMarket-ZaDrahou","4-03-3-CityMarket-Market",
+      "7-01-1-CernovaPark","7-01-2-CernovaPark-Park"
+    ],
+    "MLK2": [
+      "1-16-1-Oko","1-17-1-VelkyZavoz","1-17-2-VelkyZavoz-SNH","1-17-3-VelkyZavoz-Kultu",
+      "1-18-1-Galeria","1-18-2-Galeria-Makovick","1-18-3-Galeria-SNHyrosa",
+      "2-01-1-Kuratorium","2-01-2-Kuratorium-Viato","2-02-1-Gymnazium",
+      "2-03-1-Acko","2-03-2-Acko-Kruhac","2-04-1-Hrabovo","2-04-2-Hrabovo-Vjazd",
+      "2-05-1-Hrabovo2-Kontaj","3-01-1-Klacno","3-01-2-Klacno-Skatepark",
+      "3-01-3-Klacno-Cesta","3-02-1-KlacnoPark","3-03-1-KlacnoJazierko",
+      "3-04-1-Liptovska1","4-01-1-ZaDrahou21","4-02-1-Bystricka46",
+      "4-03-1-CityMarket","5-01-1-ZSSladkovicova","5-02-1-Holleho-Houdeka",
+      "5-02-2-Holleho-Plavisko","5-02-3-Holleho-Vnutro",
+      "5-03-1-T18-Parkovisko","5-03-2-T18-Plavisko"
+    ],
+    "MLK3": [
+      "1-01-1-Stred","1-01-2-Stred-Podhora","1-01-3-Stred-Mostova",
+      "1-02-1-Kniznica","1-02-2-Kniznica-Podhora","1-03-1-SNHyrosa",
+      "1-04-1-ORPZ","1-04-2-ORPZ-Madacova","1-05-1-ZSDoncova","1-05-2-ZSDoncova-Ber",
+      "1-06-1-Synagoga","1-07-1-Mauzoleum","1-07-2-Kostol","1-07-3-Kostol-Lavicky",
+      "1-07-4-TmaveSchody","1-08-1-MsuVzadu","1-09-1-Stanica","1-09-2-Stanica-Vjazd",
+      "1-10-1-Zarevuca","1-10-2-Zarevuca-Polna","1-11-1-CirkevneGym",
+      "1-12-1-MedveckehoPark","1-13-1-Celprojekt","1-13-2-Celprojekt-Posta",
+      "1-14-1-Podhora","1-14-2-Podhora-Trznica","1-15-1-Bjornson"
+    ]
+  };
+  function cameraOptionsHTML(selected) {
+    return Object.entries(CAM_GROUPS).map(([grp, cams]) =>
+      `<optgroup label="${grp}">${cams.map(c=>`<option value="${c}"${c===selected?" selected":""}>${c}</option>`).join("")}</optgroup>`
+    ).join("");
+  }
+
   const camSel = document.getElementById("r-camera");
-  for (let i=1; i<=35; i++) camSel.insertAdjacentHTML("beforeend", `<option value="Kamera ${i}">Kamera ${i}</option>`);
+  camSel.innerHTML = `<option value="">-</option>` + cameraOptionsHTML("");
 
   // Today
   const today = new Date().toISOString().split("T")[0];
@@ -395,7 +433,7 @@
                     <span style="font-size:11px;color:var(--muted);font-weight:500">Kamera</span>
                     <select id="er-cam-${rec.rid}" style="height:34px;border:1px solid var(--border-strong);border-radius:8px;padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;width:100%">
                       <option value="">-</option>
-                      ${Array.from({length:35},(_,i)=>`<option value="Kamera ${i+1}" ${rec.camera===`Kamera ${i+1}`?"selected":""}>Kamera ${i+1}</option>`).join("")}
+                      ${cameraOptionsHTML(rec.camera||"")}
                     </select>
                   </div>
                   <div style="display:flex;flex-direction:column;gap:3px">
