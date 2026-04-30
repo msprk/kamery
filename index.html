@@ -83,12 +83,12 @@
     .svc-body.open { display: block; }
     .records-wrap { padding: 12px 15px; }
     .records-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 8px; }
-    .record-row { display: flex; gap: 0; padding: 9px 0; border-bottom: 0.5px solid var(--border); align-items: flex-start; }
+    .record-row { display: flex; gap: 8px; padding: 9px 0; border-bottom: 0.5px solid var(--border); align-items: flex-start; }
     .record-row:last-child { border-bottom: none; }
     .rec-time { font-size: 12px; font-weight: 500; color: var(--amber); min-width: 46px; flex-shrink: 0; padding-top: 2px; }
     .rec-cam  { font-size: 12px; font-weight: 500; color: var(--accent); min-width: 74px; flex-shrink: 0; padding-top: 2px; }
     .rec-desc { font-size: 13px; color: var(--text); line-height: 1.5; flex: 1; }
-    .rec-type-badge { display:inline-block; font-size:10px; font-weight:600; padding:2px 7px; border-radius:20px; margin-bottom:3px; white-space:nowrap; }
+    .rec-type-badge { display:block; width:fit-content; font-size:10px; font-weight:600; padding:2px 7px; border-radius:20px; margin-bottom:5px; white-space:nowrap; }
     .type-bitka      { background:#fde8e6; color:#c0392b; }
     .type-alkohol    { background:#fef3cd; color:#b45309; }
     .type-znecistenie{ background:#d8f0e6; color:#2d6a4f; }
@@ -392,7 +392,7 @@
   function typeBadge(type) {
     if (!type) return "";
     const cls = TYPE_CLASS[type]||"type-ine";
-    return `<span class="rec-type-badge ${cls}">${type}</span><br>`;
+    return `<span class="rec-type-badge ${cls}">${type}</span>`;
   }
 
   function setStatus(on) {
