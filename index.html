@@ -485,37 +485,39 @@
               </div>
             </div>
             <!-- RECORDS EDIT -->
-            ${records.length ? `
             <div style="border-top:0.5px solid var(--border);padding:10px 15px">
               <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Záznamy udalostí</div>
-              ${records.map((rec,idx)=>`
-              <div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:6px">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
-                  <div style="display:flex;flex-direction:column;gap:3px">
-                    <span style="font-size:11px;color:var(--muted);font-weight:500">Kamera</span>
-                    <select id="er-cam-${rec.rid}" style="height:34px;border:1px solid var(--border-strong);border-radius:8px;padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;width:100%">
-                      <option value="">-</option>
-                      ${cameraOptionsHTML(rec.camera||"")}
-                    </select>
+              <div id="edit-records-${s.id}">
+                ${records.map((rec)=>`
+                <div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:6px">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+                    <div style="display:flex;flex-direction:column;gap:3px">
+                      <span style="font-size:11px;color:var(--muted);font-weight:500">Kamera</span>
+                      <select id="er-cam-${rec.rid}" style="height:34px;border:1px solid var(--border-strong);border-radius:8px;padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;width:100%">
+                        <option value="">-</option>
+                        ${cameraOptionsHTML(rec.camera||"")}
+                      </select>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:3px">
+                      <span style="font-size:11px;color:var(--muted);font-weight:500">Čas</span>
+                      <input type="time" id="er-time-${rec.rid}" value="${rec.time||''}" style="height:34px;border:1px solid var(--border-strong);border-radius:8px;padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;width:100%"/>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:3px">
+                      <span style="font-size:11px;color:var(--muted);font-weight:500">Druh udalosti</span>
+                      <select id="er-type-${rec.rid}" style="height:34px;border:1px solid var(--border-strong);border-radius:8px;padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;width:100%">
+                        ${typeOptionsHTML(rec.eventType||"")}
+                      </select>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:3px;grid-column:1/-1">
+                      <span style="font-size:11px;color:var(--muted);font-weight:500">Opis</span>
+                      <textarea id="er-desc-${rec.rid}" style="width:100%;height:56px;border:1px solid var(--border-strong);border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;resize:vertical">${rec.description||''}</textarea>
+                    </div>
                   </div>
-                  <div style="display:flex;flex-direction:column;gap:3px">
-                    <span style="font-size:11px;color:var(--muted);font-weight:500">Čas</span>
-                    <input type="time" id="er-time-${rec.rid}" value="${rec.time||''}" style="height:34px;border:1px solid var(--border-strong);border-radius:8px;padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;width:100%"/>
-                  </div>
-                  <div style="display:flex;flex-direction:column;gap:3px">
-                    <span style="font-size:11px;color:var(--muted);font-weight:500">Druh udalosti</span>
-                    <select id="er-type-${rec.rid}" style="height:34px;border:1px solid var(--border-strong);border-radius:8px;padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;width:100%">
-                      ${typeOptionsHTML(rec.eventType||"")}
-                    </select>
-                  </div>
-                  <div style="display:flex;flex-direction:column;gap:3px;grid-column:1/-1">
-                    <span style="font-size:11px;color:var(--muted);font-weight:500">Opis</span>
-                    <textarea id="er-desc-${rec.rid}" style="width:100%;height:56px;border:1px solid var(--border-strong);border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;resize:vertical">${rec.description||''}</textarea>
-                  </div>
-                </div>
-                <button onclick="deleteRecord('${s.id}','${rec.rid}')" style="height:28px;padding:0 10px;background:none;border:0.5px solid rgba(192,57,43,0.25);border-radius:6px;color:var(--red);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer">Vymazať záznam</button>
-              </div>`).join("")}
-            </div>` : ''}
+                  <button onclick="deleteRecord('${s.id}','${rec.rid}')" style="height:28px;padding:0 10px;background:none;border:0.5px solid rgba(192,57,43,0.25);border-radius:6px;color:var(--red);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer">Vymazať záznam</button>
+                </div>`).join("")}
+              </div>
+              <button onclick="addEditRecord('${s.id}')" style="width:100%;height:34px;background:none;border:1px dashed var(--border-strong);border-radius:8px;color:var(--accent);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;margin-top:4px">+ Pridať záznam</button>
+            </div>
             <!-- SAVE / CANCEL -->
             <div style="display:flex;gap:8px;padding:10px 15px 14px">
               <button onclick="saveAll('${s.id}')" style="flex:1;height:40px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer">Uložiť zmeny</button>
@@ -568,10 +570,57 @@
       const desc      = g(`er-desc-${rid}`);
       if (cam || time || desc || eventType) await update(ref(db,`kamery/sluzby/${id}/records/${rid}`), {camera:cam, time, eventType, description:desc});
     }
+    // save newly added records
+    const newDivs = document.querySelectorAll(`#edit-records-${id} [data-new-rec]`);
+    for (const div of newDivs) {
+      const tempId    = div.getAttribute('data-new-rec');
+      const cam       = g(`er-cam-${tempId}`);
+      const time      = g(`er-time-${tempId}`);
+      const eventType = g(`er-type-${tempId}`);
+      const desc      = g(`er-desc-${tempId}`);
+      if (cam || desc) await push(ref(db,`kamery/sluzby/${id}/records`), {camera:cam, time, eventType, description:desc});
+    }
     editId = null; renderDennik();
   };
   window.deleteRecord = (svcId, rid) => {
     if (confirm("Vymazať tento záznam udalosti?")) remove(ref(db,`kamery/sluzby/${svcId}/records/${rid}`));
+  };
+
+  window.addEditRecord = (svcId) => {
+    const container = document.getElementById(`edit-records-${svcId}`);
+    if (!container) return;
+    const tempId = `new-${Date.now()}`;
+    const camOpts = `<option value="">— Vybrať kameru —</option>` +
+      Object.entries(CAM_GROUPS).map(([grp,cams])=>
+        `<optgroup label="${grp}">${cams.map(c=>`<option value="${c}">${c}</option>`).join("")}</optgroup>`
+      ).join("");
+    const typeOpts = `<option value="">— Vybrať —</option>` +
+      EVENT_TYPES.map(t=>`<option value="${t}">${t}</option>`).join("");
+    const div = document.createElement('div');
+    div.setAttribute('data-new-rec', tempId);
+    div.style.cssText = 'background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:6px;border:1px dashed var(--accent);';
+    div.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <span style="font-size:11px;color:var(--muted);font-weight:500">Kamera</span>
+          <select id="er-cam-${tempId}" style="height:34px;border:1px solid var(--border-strong);border-radius:8px;padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;width:100%">${camOpts}</select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <span style="font-size:11px;color:var(--muted);font-weight:500">Čas</span>
+          <input type="time" id="er-time-${tempId}" style="height:34px;border:1px solid var(--border-strong);border-radius:8px;padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;width:100%"/>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <span style="font-size:11px;color:var(--muted);font-weight:500">Druh udalosti</span>
+          <select id="er-type-${tempId}" style="height:34px;border:1px solid var(--border-strong);border-radius:8px;padding:0 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;width:100%">${typeOpts}</select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;grid-column:1/-1">
+          <span style="font-size:11px;color:var(--muted);font-weight:500">Opis</span>
+          <textarea id="er-desc-${tempId}" style="width:100%;height:56px;border:1px solid var(--border-strong);border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;resize:vertical"></textarea>
+        </div>
+      </div>
+      <button onclick="this.closest('[data-new-rec]').remove()" style="height:28px;padding:0 10px;background:none;border:0.5px solid rgba(192,57,43,0.25);border-radius:6px;color:var(--red);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer">Odstrániť</button>
+    `;
+    container.appendChild(div);
   };
 
     // ── SLUŽBA ──
