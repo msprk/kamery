@@ -234,7 +234,13 @@
     <div class="chart-card" id="stat-shift"></div>
     <div class="stat-title">Podľa pracovníka</div>
     <div class="chart-card" id="stat-worker"></div>
-    <div class="stat-title" id="stat-month-title">Podľa mesiaca</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:1.25rem;margin-bottom:8px">
+      <div class="stat-title" id="stat-month-title" style="margin:0">Podľa mesiaca</div>
+      <div style="display:flex;gap:4px">
+        <button id="chart-btn-svc" onclick="setChartMode('svc')" style="height:26px;padding:0 10px;border-radius:20px;border:1px solid var(--border-strong);background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer">Služby</button>
+        <button id="chart-btn-rec" onclick="setChartMode('rec')" style="height:26px;padding:0 10px;border-radius:20px;border:1px solid var(--border-strong);background:var(--surface);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:11px;cursor:pointer">Záznamy</button>
+      </div>
+    </div>
     <div class="chart-card">
       <div class="chart-wrap"><canvas id="monthly-chart"></canvas></div>
     </div>
@@ -328,7 +334,7 @@
 
   // ── KAMERY ──
   const CAM_GROUPS = {
-    "MLK1": [
+    "MLK3": [
       "1-04-3-ORPZ-Salvova","1-05-3-ZSDoncova-Doncova","1-06-2-Synagoga-Panska",
       "1-07-5-RuzoveSchody","1-19-1-MsU-Gymnazium","1-19-2-MsU-Vila",
       "1-19-3-MsU-Vzadu","1-19-4-MsU-Zavoz","1-20-1-NabrezieMostova",
@@ -348,7 +354,7 @@
       "5-02-2-Holleho-Plavisko","5-02-3-Holleho-Vnutro",
       "5-03-1-T18-Parkovisko","5-03-2-T18-Plavisko"
     ],
-    "MLK3": [
+    "MLK1": [
       "1-01-1-Stred","1-01-2-Stred-Podhora","1-01-3-Stred-Mostova",
       "1-02-1-Kniznica","1-02-2-Kniznica-Podhora","1-03-1-SNHyrosa",
       "1-04-1-ORPZ","1-04-2-ORPZ-Madacova","1-05-1-ZSDoncova","1-05-2-ZSDoncova-Ber",
@@ -749,6 +755,20 @@
     if (tab==="stats")  renderStats();
   };
 
+  let _chartMode = "svc"; // "svc" = služby, "rec" = záznamy
+  window.setChartMode = function(mode) {
+    _chartMode = mode;
+    document.getElementById("chart-btn-svc").style.cssText = mode==="svc"
+      ? "height:26px;padding:0 10px;border-radius:20px;border:1px solid var(--border-strong);background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer"
+      : "height:26px;padding:0 10px;border-radius:20px;border:1px solid var(--border-strong);background:var(--surface);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:11px;cursor:pointer";
+    document.getElementById("chart-btn-rec").style.cssText = mode==="rec"
+      ? "height:26px;padding:0 10px;border-radius:20px;border:1px solid var(--border-strong);background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer"
+      : "height:26px;padding:0 10px;border-radius:20px;border:1px solid var(--border-strong);background:var(--surface);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:11px;cursor:pointer";
+    renderStats();
+  };
+
+  function recCount(s) { return s.records ? Object.keys(s.records).length : 0; }
+
   window.renderStats = function() {
     const services = Object.values(allServices);
     const selYear  = document.getElementById("stat-year")?.value||"";
@@ -767,66 +787,76 @@
     if (selYear)  filtered = filtered.filter(s=>(s.date||"").startsWith(selYear));
     if (selMonth) filtered = filtered.filter(s=>(s.date||"").slice(5,7)===selMonth);
 
-    // Count total events across all filtered services
-    const totalEvents = filtered.reduce((sum,s)=>sum+(s.records?Object.keys(s.records).length:0),0);
     const totalServices = filtered.length;
+    const totalEvents   = filtered.reduce((sum,s)=>sum+recCount(s),0);
+    const avgRec        = totalServices ? (totalEvents/totalServices).toFixed(1) : "0";
 
     // KPI
     document.getElementById("stat-kpi").innerHTML = `
       <div class="kpi-card"><div class="kpi-num">${totalServices}</div><div class="kpi-label">Služby</div></div>
-      <div class="kpi-card"><div class="kpi-num">${totalEvents}</div><div class="kpi-label">Udalosti</div></div>
-      <div class="kpi-card"><div class="kpi-num">${totalServices?Math.round(totalEvents/totalServices*10)/10:0}</div><div class="kpi-label">Udalostí/službu</div></div>`;
+      <div class="kpi-card"><div class="kpi-num">${totalEvents}</div><div class="kpi-label">Záznamy</div></div>
+      <div class="kpi-card"><div class="kpi-num">${avgRec}</div><div class="kpi-label">Záz./službu</div></div>`;
 
     // By shift
     const shifts = ["A","B","C","D"];
-    const shiftCounts = shifts.map(sh=>filtered.filter(s=>s.shift===sh).length);
-    const maxSh = Math.max(...shiftCounts,1);
     const colors = ["#1d5fa8","#2d6a4f","#b45309","#c0392b"];
+    const shiftSvc = shifts.map(sh => filtered.filter(s=>s.shift===sh).length);
+    const shiftRec = shifts.map(sh => filtered.filter(s=>s.shift===sh).reduce((n,s)=>n+recCount(s),0));
+    const maxSh = Math.max(...shiftSvc, 1);
     document.getElementById("stat-shift").innerHTML = shifts.map((sh,i)=>`
       <div class="br">
         <div class="br-label">Hliadka ${sh}</div>
-        <div class="br-wrap"><div class="br-bar" style="width:${Math.round(shiftCounts[i]/maxSh*100)}%;background:${colors[i]}"></div></div>
-        <div class="br-count">${shiftCounts[i]} <span style="font-size:11px;color:var(--muted)">${totalServices?Math.round(shiftCounts[i]/totalServices*100):0}%</span></div>
+        <div class="br-wrap"><div class="br-bar" style="width:${Math.round(shiftSvc[i]/maxSh*100)}%;background:${colors[i]}"></div></div>
+        <div class="br-count" style="min-width:80px;text-align:right">
+          <span style="font-weight:600">${shiftSvc[i]}</span><span style="font-size:11px;color:var(--muted)"> sl.</span>
+          &nbsp;·&nbsp;
+          <span style="font-weight:600;color:var(--accent)">${shiftRec[i]}</span><span style="font-size:11px;color:var(--muted)"> záz.</span>
+        </div>
       </div>`).join("");
 
     // By worker
     const workerMap = {};
-    filtered.forEach(s=>{ if(s.worker) workerMap[s.worker]=(workerMap[s.worker]||0)+1; });
-    const workers = Object.entries(workerMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
-    const maxW = Math.max(...workers.map(w=>w[1]),1);
-    document.getElementById("stat-worker").innerHTML = workers.length ? workers.map(([w,c])=>`
+    filtered.forEach(s=>{ if(s.worker){ if(!workerMap[s.worker]) workerMap[s.worker]={svc:0,rec:0}; workerMap[s.worker].svc++; workerMap[s.worker].rec+=recCount(s); }});
+    const workers = Object.entries(workerMap).sort((a,b)=>b[1].rec-a[1].rec).slice(0,10);
+    const maxW = Math.max(...workers.map(([,v])=>v.rec),1);
+    document.getElementById("stat-worker").innerHTML = workers.length ? workers.map(([w,v])=>`
       <div class="br">
         <div class="br-label">${w}</div>
-        <div class="br-wrap"><div class="br-bar" style="width:${Math.round(c/maxW*100)}%;background:var(--accent)"></div></div>
-        <div class="br-count">${c} <span style="font-size:11px;color:var(--muted)">${Math.round(c/totalServices*100)}%</span></div>
+        <div class="br-wrap"><div class="br-bar" style="width:${Math.round(v.rec/maxW*100)}%;background:var(--accent)"></div></div>
+        <div class="br-count" style="min-width:80px;text-align:right">
+          <span style="font-weight:600">${v.svc}</span><span style="font-size:11px;color:var(--muted)"> sl.</span>
+          &nbsp;·&nbsp;
+          <span style="font-weight:600;color:var(--accent)">${v.rec}</span><span style="font-size:11px;color:var(--muted)"> záz.</span>
+        </div>
       </div>`).join("") : '<div style="font-size:13px;color:var(--muted)">Žiadne dáta</div>';
 
     // Monthly/daily Chart.js
     const monthNamesLong = ["Január","Február","Marec","Apríl","Máj","Jún","Júl","August","September","Október","November","December"];
     const monthsShort = ["Jan","Feb","Mar","Apr","Máj","Jún","Júl","Aug","Sep","Okt","Nov","Dec"];
-    let chartLabels, chartData;
+    let chartLabels, chartDataSvc, chartDataRec;
     if (!selMonth) {
       document.getElementById("stat-month-title").textContent = "Podľa mesiaca";
       chartLabels = monthsShort;
-      chartData = monthsShort.map((_,i) => {
-        const m = String(i+1).padStart(2,"0");
-        return filtered.filter(s=>(s.date||"").slice(5,7)===m).length;
-      });
+      chartDataSvc = monthsShort.map((_,i) => { const m=String(i+1).padStart(2,"0"); return filtered.filter(s=>(s.date||"").slice(5,7)===m).length; });
+      chartDataRec = monthsShort.map((_,i) => { const m=String(i+1).padStart(2,"0"); return filtered.filter(s=>(s.date||"").slice(5,7)===m).reduce((n,s)=>n+recCount(s),0); });
     } else {
       document.getElementById("stat-month-title").textContent = "Podľa dňa — " + monthNamesLong[parseInt(selMonth)-1];
       const yr = selYear || String(new Date().getFullYear());
       const daysInMonth = new Date(parseInt(yr), parseInt(selMonth), 0).getDate();
       chartLabels = Array.from({length:daysInMonth},(_,i)=>String(i+1));
-      chartData = chartLabels.map((_,i) => {
-        const day = String(i+1).padStart(2,"0");
-        return filtered.filter(s=>(s.date||"").slice(8,10)===day).length;
-      });
+      chartDataSvc = chartLabels.map((_,i) => { const d=String(i+1).padStart(2,"0"); return filtered.filter(s=>(s.date||"").slice(8,10)===d).length; });
+      chartDataRec = chartLabels.map((_,i) => { const d=String(i+1).padStart(2,"0"); return filtered.filter(s=>(s.date||"").slice(8,10)===d).reduce((n,s)=>n+recCount(s),0); });
     }
+
+    const isRec = _chartMode === "rec";
     const ctx = document.getElementById("monthly-chart").getContext("2d");
     if (window._kameryChart) window._kameryChart.destroy();
     window._kameryChart = new Chart(ctx, {
       type: "bar",
-      data: { labels: chartLabels, datasets: [{ data: chartData, backgroundColor: "#1d5fa8", borderRadius: 4, borderSkipped: false }] },
+      data: { labels: chartLabels, datasets: [
+        { label: "Záznamy", data: chartDataRec, backgroundColor: "rgba(29,95,168,0.75)", borderRadius: 4, borderSkipped: false, hidden: !isRec },
+        { label: "Služby",  data: chartDataSvc, backgroundColor: "rgba(45,106,79,0.7)",  borderRadius: 4, borderSkipped: false, hidden: isRec  },
+      ]},
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
