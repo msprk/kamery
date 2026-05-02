@@ -798,19 +798,21 @@
       <div class="kpi-card"><div class="kpi-num">${avgRec}</div><div class="kpi-label">Záz./službu</div></div>`;
 
     // By shift
-    const shifts = ["A","B","C","D"];
-    const colors = ["#1d5fa8","#2d6a4f","#b45309","#c0392b"];
-    const shiftSvc = shifts.map(sh => filtered.filter(s=>s.shift===sh).length);
-    const shiftRec = shifts.map(sh => filtered.filter(s=>s.shift===sh).reduce((n,s)=>n+recCount(s),0));
-    const maxSh = Math.max(...shiftSvc, 1);
-    document.getElementById("stat-shift").innerHTML = shifts.map((sh,i)=>`
+    const shiftColors = {"A":"#1d5fa8","B":"#2d6a4f","C":"#b45309","D":"#c0392b"};
+    const shiftData = ["A","B","C","D"].map(sh=>({
+      sh,
+      svc: filtered.filter(s=>s.shift===sh).length,
+      rec: filtered.filter(s=>s.shift===sh).reduce((n,s)=>n+recCount(s),0)
+    }));
+    const maxSh = Math.max(...shiftData.map(d=>d.svc), 1);
+    document.getElementById("stat-shift").innerHTML = shiftData.map(({sh,svc,rec})=>`
       <div class="br">
         <div class="br-label">Hliadka ${sh}</div>
-        <div class="br-wrap"><div class="br-bar" style="width:${Math.round(shiftSvc[i]/maxSh*100)}%;background:${colors[i]}"></div></div>
+        <div class="br-wrap"><div class="br-bar" style="width:${Math.round(svc/maxSh*100)}%;background:${shiftColors[sh]}"></div></div>
         <div class="br-count" style="min-width:80px;text-align:right">
-          <span style="font-weight:600">${shiftSvc[i]}</span><span style="font-size:11px;color:var(--muted)"> sl.</span>
+          <span style="font-weight:600">${svc}</span><span style="font-size:11px;color:var(--muted)"> sl.</span>
           &nbsp;·&nbsp;
-          <span style="font-weight:600;color:var(--accent)">${shiftRec[i]}</span><span style="font-size:11px;color:var(--muted)"> záz.</span>
+          <span style="font-weight:600;color:var(--accent)">${rec}</span><span style="font-size:11px;color:var(--muted)"> záz.</span>
         </div>
       </div>`).join("");
 
