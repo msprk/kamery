@@ -440,7 +440,7 @@
     container.innerHTML = entries.map(s => {
       const isActive = s.status === "active";
       const isOpen   = openId === s.id;
-      const records  = s.records ? Object.values(s.records).sort((a,b)=>(a.time||"").localeCompare(b.time||"")) : [];
+      const records  = s.records ? Object.entries(s.records).map(([rid,v])=>({rid,...v})).sort((a,b)=>(a.time||"").localeCompare(b.time||"")) : [];
       const dur      = s.endTime ? calcDuration(s.startTime, s.endTime) : null;
       return `
       <div class="service-card">
