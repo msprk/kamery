@@ -83,12 +83,14 @@
     .svc-body.open { display: block; }
     .records-wrap { padding: 12px 15px; }
     .records-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 8px; }
-    .record-row { display: flex; gap: 8px; padding: 9px 0; border-bottom: 0.5px solid var(--border); align-items: flex-start; }
+    .record-row { padding: 10px 0; border-bottom: 0.5px solid var(--border); }
     .record-row:last-child { border-bottom: none; }
-    .rec-time { font-size: 12px; font-weight: 500; color: var(--amber); min-width: 46px; flex-shrink: 0; padding-top: 2px; }
-    .rec-cam  { font-size: 12px; font-weight: 500; color: var(--accent); min-width: 74px; flex-shrink: 0; padding-top: 2px; }
-    .rec-desc { font-size: 13px; color: var(--text); line-height: 1.5; flex: 1; }
-    .rec-type-badge { display:block; width:fit-content; font-size:10px; font-weight:600; padding:2px 7px; border-radius:20px; margin-bottom:5px; white-space:nowrap; }
+    .rec-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 5px; }
+    .rec-time { font-size: 12px; font-weight: 600; color: var(--amber); flex-shrink: 0; }
+    .rec-date-tag { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+    .rec-cam  { font-size: 12px; font-weight: 500; color: var(--accent); flex-shrink: 0; }
+    .rec-desc { font-size: 13px; color: var(--text); line-height: 1.6; }
+    .rec-type-badge { display:inline-block; width:fit-content; font-size:10px; font-weight:600; padding:2px 7px; border-radius:20px; white-space:nowrap; flex-shrink:0; }
     .type-bitka      { background:#fde8e6; color:#c0392b; }
     .type-alkohol    { background:#fef3cd; color:#b45309; }
     .type-znecistenie{ background:#d8f0e6; color:#2d6a4f; }
@@ -401,6 +403,25 @@
     return `<span class="rec-type-badge ${cls}">${type}</span>`;
   }
 
+  // Minúty od začiatku dňa, s korekciou pre záznamy po polnoci
+  function recSortMins(recTime, svcStartTime) {
+    const toMins = t => { const [h,m]=(t||"00:00").split(":").map(Number); return h*60+m; };
+    const rMins = toMins(recTime);
+    const sMins = toMins(svcStartTime);
+    return rMins < sMins ? rMins + 1440 : rMins; // +24h ak je po polnoci
+  }
+
+  // Skutočný dátum záznamu (môže byť +1 deň pre nočné zmeny)
+  function recDisplayDate(recTime, svcDate, svcStartTime) {
+    const toMins = t => { const [h,m]=(t||"00:00").split(":").map(Number); return h*60+m; };
+    if (!recTime || !svcDate) return svcDate||"";
+    if (toMins(recTime) < toMins(svcStartTime)) {
+      const d = new Date(svcDate); d.setDate(d.getDate()+1);
+      return d.toISOString().split("T")[0];
+    }
+    return svcDate;
+  }
+
   function setStatus(on) {
     document.getElementById("status-dot").className = "dot"+(on?" on":"");
     document.getElementById("status-text").textContent = on ? "Online" : "Offline";
@@ -446,7 +467,7 @@
     container.innerHTML = entries.map(s => {
       const isActive = s.status === "active";
       const isOpen   = openId === s.id;
-      const records  = s.records ? Object.entries(s.records).map(([rid,v])=>({rid,...v})).sort((a,b)=>(a.time||"").localeCompare(b.time||"")) : [];
+      const records  = s.records ? Object.entries(s.records).map(([rid,v])=>({rid,...v})).sort((a,b)=>recSortMins(a.time,s.startTime)-recSortMins(b.time,s.startTime)) : [];
       const dur      = s.endTime ? calcDuration(s.startTime, s.endTime) : null;
       return `
       <div class="service-card">
@@ -532,12 +553,20 @@
           ` : `
             <div class="records-wrap">
               <div class="records-title">Záznamy udalostí</div>
-              ${records.length ? records.map(rec=>`
+              ${records.length ? records.map(rec=>{
+                const rDate = recDisplayDate(rec.time, s.date, s.startTime);
+                const nextDay = rDate !== s.date;
+                return `
                 <div class="record-row">
-                  <span class="rec-time">${rec.time||""}</span>
-                  <span class="rec-cam">${rec.camera||""}</span>
-                  <span class="rec-desc">${typeBadge(rec.eventType||"")}${rec.description||""}</span>
-                </div>`).join("") : `<div class="no-records">Žiadne záznamy udalostí</div>`}
+                  <div class="rec-header">
+                    <span class="rec-time">${rec.time||""}</span>
+                    ${nextDay ? `<span class="rec-date-tag">${rDate}</span>` : ""}
+                    <span class="rec-cam">${rec.camera||""}</span>
+                    ${typeBadge(rec.eventType||"")}
+                  </div>
+                  <div class="rec-desc">${rec.description||""}</div>
+                </div>`;
+              }).join("") : `<div class="no-records">Žiadne záznamy udalostí</div>`}
             </div>
             <div class="svc-footer">
               <button class="edit-svc-btn" onclick="startEdit('${s.id}')">Upraviť</button>
