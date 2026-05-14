@@ -158,9 +158,9 @@
     .submit-btn:disabled { background: var(--muted); cursor: not-allowed; }
 
     /* MODAL */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; }
     .modal-overlay.hidden { display: none; }
-    .modal { background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 1.25rem; width: 100%; max-width: 600px; max-height: 85vh; overflow-y: auto; }
+    .modal { background: var(--surface); border-radius: var(--radius-lg); padding: 1.25rem; width: 100%; max-width: 600px; max-height: 85vh; overflow-y: auto; }
     .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
     .modal-title { font-size: 15px; font-weight: 600; }
     .modal-close { background: var(--surface2); border: none; color: var(--muted); width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
