@@ -207,7 +207,7 @@
       <button class="type-filter-btn" data-type="Bitka" onclick="setTypeFilter('Bitka')">Bitka</button>
       <button class="type-filter-btn" data-type="Alkohol" onclick="setTypeFilter('Alkohol')">Alkohol</button>
       <button class="type-filter-btn" data-type="Znečistenie" onclick="setTypeFilter('Znečistenie')">Znečistenie</button>
-      <button class="type-filter-btn" data-type="Priestupok" onclick="setTypeFilter('Priestupok')">Priestupok</button>
+      <button class="type-filter-btn" data-type="Dopravný priestupok" onclick="setTypeFilter('Dopravný priestupok')">Dopravný priestupok</button>
       <button class="type-filter-btn" data-type="Podozrivá osoba" onclick="setTypeFilter('Podozrivá osoba')">Podozrivá osoba</button>
       <button class="type-filter-btn" data-type="Iné" onclick="setTypeFilter('Iné')">Iné</button>
     </div>
@@ -276,7 +276,7 @@
           <option value="Bitka">Bitka</option>
           <option value="Alkohol">Alkohol</option>
           <option value="Znečistenie">Znečistenie</option>
-          <option value="Priestupok">Priestupok</option>
+          <option value="Dopravný priestupok">Dopravný priestupok</option>
           <option value="Podozrivá osoba">Podozrivá osoba</option>
           <option value="Iné">Iné</option>
         </select>
@@ -372,10 +372,10 @@
   const today = localDateStr(new Date());
 
   // Druh udalosti — pomocné
-  const EVENT_TYPES = ["Bitka","Alkohol","Znečistenie","Priestupok","Podozrivá osoba","Iné"];
+  const EVENT_TYPES = ["Bitka","Alkohol","Znečistenie","Dopravný priestupok","Podozrivá osoba","Iné"];
   const TYPE_CLASS = {
     "Bitka":"type-bitka","Alkohol":"type-alkohol","Znečistenie":"type-znecistenie",
-    "Priestupok":"type-priestupok","Podozrivá osoba":"type-podozriva","Iné":"type-ine"
+    "Dopravný priestupok":"type-priestupok","Podozrivá osoba":"type-podozriva","Iné":"type-ine"
   };
   let activeTypeFilter = "";
   window.setTypeFilter = function(type) {
