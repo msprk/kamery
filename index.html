@@ -544,7 +544,7 @@
                     </div>
                     <div style="display:flex;flex-direction:column;gap:3px;grid-column:1/-1">
                       <span style="font-size:11px;color:var(--muted);font-weight:500">Opis</span>
-                      <textarea id="er-desc-${rec.rid}" style="width:100%;height:56px;border:1px solid var(--border-strong);border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;resize:vertical">${rec.description||''}</textarea>
+                      <textarea id="er-desc-${rec.rid}" style="width:100%;height:56px;border:1px solid var(--border-strong);border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;resize:vertical">${escapeHtml(rec.description||'')}</textarea>
                     </div>
                   </div>
                   <button onclick="deleteRecord('${s.id}','${rec.rid}')" style="height:28px;padding:0 10px;background:none;border:0.5px solid rgba(192,57,43,0.25);border-radius:6px;color:var(--red);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer">Vymazať záznam</button>
@@ -571,7 +571,7 @@
                     <span class="rec-cam">${rec.camera||""}</span>
                     ${typeBadge(rec.eventType||"")}
                   </div>
-                  <div class="rec-desc">${rec.description||""}</div>
+                  <div class="rec-desc">${escapeHtml(rec.description||"")}</div>
                 </div>`;
               }).join("") : `<div class="no-records">Žiadne záznamy udalostí</div>`}
             </div>
@@ -600,29 +600,31 @@
   window.saveAll = async (id) => {
     const g = elId => { const el=document.getElementById(elId); return el?el.value.trim():""; };
     const s = allServices[id]; if (!s) return;
-    await update(ref(db,"kamery/sluzby/"+id), {
-      date: g("ed-date"), startTime: g("ed-start"), endTime: g("ed-end"),
-      worker: g("ed-worker"), shift: g("ed-shift"),
-    });
-    const records = s.records ? Object.entries(s.records) : [];
-    for (const [rid] of records) {
-      const cam       = g(`er-cam-${rid}`);
-      const time      = g(`er-time-${rid}`);
-      const eventType = g(`er-type-${rid}`);
-      const desc      = g(`er-desc-${rid}`);
-      if (cam || time || desc || eventType) await update(ref(db,`kamery/sluzby/${id}/records/${rid}`), {camera:cam, time, eventType, description:desc});
-    }
-    // save newly added records
-    const newDivs = document.querySelectorAll(`#edit-records-${id} [data-new-rec]`);
-    for (const div of newDivs) {
-      const tempId    = div.getAttribute('data-new-rec');
-      const cam       = g(`er-cam-${tempId}`);
-      const time      = g(`er-time-${tempId}`);
-      const eventType = g(`er-type-${tempId}`);
-      const desc      = g(`er-desc-${tempId}`);
-      if (cam || desc) await push(ref(db,`kamery/sluzby/${id}/records`), {camera:cam, time, eventType, description:desc});
-    }
-    editId = null; renderDennik();
+    try {
+      await update(ref(db,"kamery/sluzby/"+id), {
+        date: g("ed-date"), startTime: g("ed-start"), endTime: g("ed-end"),
+        worker: g("ed-worker"), shift: g("ed-shift"),
+      });
+      const records = s.records ? Object.entries(s.records) : [];
+      for (const [rid] of records) {
+        const cam       = g(`er-cam-${rid}`);
+        const time      = g(`er-time-${rid}`);
+        const eventType = g(`er-type-${rid}`);
+        const desc      = g(`er-desc-${rid}`);
+        if (cam || time || desc || eventType) await update(ref(db,`kamery/sluzby/${id}/records/${rid}`), {camera:cam, time, eventType, description:desc});
+      }
+      // save newly added records
+      const newDivs = document.querySelectorAll(`#edit-records-${id} [data-new-rec]`);
+      for (const div of newDivs) {
+        const tempId    = div.getAttribute('data-new-rec');
+        const cam       = g(`er-cam-${tempId}`);
+        const time      = g(`er-time-${tempId}`);
+        const eventType = g(`er-type-${tempId}`);
+        const desc      = g(`er-desc-${tempId}`);
+        if (cam || desc) await push(ref(db,`kamery/sluzby/${id}/records`), {camera:cam, time, eventType, description:desc});
+      }
+      editId = null; renderDennik();
+    } catch(e) { showToast("Chyba pri ukladaní: " + e.message); }
   };
   window.deleteRecord = (svcId, rid) => {
     if (confirm("Vymazať tento záznam udalosti?")) remove(ref(db,`kamery/sluzby/${svcId}/records/${rid}`));
@@ -723,9 +725,12 @@
             <div class="active-records-title">Záznamy udalostí</div>
             ${records.length ? records.map(rec=>`
               <div class="record-row">
-                <span class="rec-time">${rec.time||""}</span>
-                <span class="rec-cam">${rec.camera||""}</span>
-                <span class="rec-desc">${rec.description||""}</span>
+                <div class="rec-header">
+                  <span class="rec-time">${rec.time||""}</span>
+                  <span class="rec-cam">${rec.camera||""}</span>
+                  ${typeBadge(rec.eventType||"")}
+                </div>
+                <div class="rec-desc">${escapeHtml(rec.description||"")}</div>
               </div>`).join("") : `<div class="no-records">Zatiaľ žiadne záznamy — pridajte prvý.</div>`}
           </div>
           <div class="active-footer">
@@ -748,12 +753,14 @@
     const btn = document.getElementById("start-btn");
     btn.disabled=true; btn.textContent="Ukladanie...";
     push(svcRef, {worker, date, startTime:start, shift, status:"active", ts:Date.now()})
-      .then(()=>{ btn.disabled=false; btn.textContent="Začať službu"; });
+      .then(()=>{ btn.disabled=false; btn.textContent="Začať službu"; })
+      .catch(e=>{ btn.disabled=false; btn.textContent="Začať službu"; showToast("Chyba: "+e.message); });
   };
 
   window.endService = () => {
     if (!activeServiceId) return;
-    update(ref(db,"kamery/sluzby/"+activeServiceId), {status:"done", endTime:new Date().toTimeString().slice(0,5)});
+    update(ref(db,"kamery/sluzby/"+activeServiceId), {status:"done", endTime:new Date().toTimeString().slice(0,5)})
+      .catch(e=>showToast("Chyba: "+e.message));
   };
 
   window.openModal = () => {
@@ -776,7 +783,8 @@
     const btn = document.getElementById("record-btn");
     btn.disabled=true; btn.textContent="Ukladanie...";
     push(ref(db,`kamery/sluzby/${activeServiceId}/records`), {camera, time, eventType, description:desc, ts:Date.now()})
-      .then(()=>{ btn.disabled=false; btn.textContent="Uložiť záznam"; closeModal(); });
+      .then(()=>{ btn.disabled=false; btn.textContent="Uložiť záznam"; closeModal(); })
+      .catch(e=>{ btn.disabled=false; btn.textContent="Uložiť záznam"; showToast("Chyba: "+e.message); });
   };
 
 
