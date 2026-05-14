@@ -708,7 +708,7 @@
         </div>`;
     } else {
       // Show active service
-      const records = active.records ? Object.values(active.records).sort((a,b)=>(a.time||"").localeCompare(b.time||"")) : [];
+      const records = active.records ? Object.values(active.records).sort((a,b)=>recSortMins(a.time,active.startTime)-recSortMins(b.time,active.startTime)) : [];
       container.innerHTML = `
         <div class="active-service-card">
           <div class="active-service-header">
@@ -723,15 +723,20 @@
           </div>
           <div class="active-records">
             <div class="active-records-title">Záznamy udalostí</div>
-            ${records.length ? records.map(rec=>`
+            ${records.length ? records.map(rec=>{
+              const rDate   = recDisplayDate(rec.time, active.date, active.startTime);
+              const nextDay = rDate !== active.date;
+              return `
               <div class="record-row">
                 <div class="rec-header">
                   <span class="rec-time">${rec.time||""}</span>
+                  ${nextDay ? `<span class="rec-date-tag">${rDate}</span>` : ""}
                   <span class="rec-cam">${rec.camera||""}</span>
                   ${typeBadge(rec.eventType||"")}
                 </div>
                 <div class="rec-desc">${escapeHtml(rec.description||"")}</div>
-              </div>`).join("") : `<div class="no-records">Zatiaľ žiadne záznamy — pridajte prvý.</div>`}
+              </div>`;
+            }).join("") : `<div class="no-records">Zatiaľ žiadne záznamy — pridajte prvý.</div>`}
           </div>
           <div class="active-footer">
             <button class="add-rec-btn" onclick="openModal()">+ Záznam udalosti</button>
