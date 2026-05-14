@@ -369,7 +369,7 @@
   camSel.innerHTML = `<option value="">-</option>` + cameraOptionsHTML("");
 
   // Today
-  const today = new Date().toISOString().split("T")[0];
+  const today = localDateStr(new Date());
 
   // Druh udalosti — pomocné
   const EVENT_TYPES = ["Bitka","Alkohol","Znečistenie","Priestupok","Podozrivá osoba","Iné"];
@@ -408,8 +408,8 @@
     const toMins = t => { const [h,m]=(t||"00:00").split(":").map(Number); return h*60+m; };
     if (!recTime || !svcDate) return svcDate||"";
     if (toMins(recTime) < toMins(svcStartTime)) {
-      const d = new Date(svcDate); d.setDate(d.getDate()+1);
-      return d.toISOString().split("T")[0];
+      const d = new Date(svcDate + "T12:00:00"); d.setDate(d.getDate()+1);
+      return localDateStr(d);
     }
     return svcDate;
   }
@@ -421,6 +421,9 @@
   function escapeHtml(s) {
     if (s == null) return "";
     return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  function localDateStr(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
   }
 
   function showToast(msg) {
@@ -689,7 +692,7 @@
           <div class="form-grid">
             <div class="form-group">
               <label>Dátum</label>
-              <input type="date" id="s-date" value="${new Date().toISOString().split("T")[0]}" />
+              <input type="date" id="s-date" value="${localDateStr(new Date())}" />
             </div>
             <div class="form-group">
               <label>Čas začiatku</label>
